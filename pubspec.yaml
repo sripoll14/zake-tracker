@@ -1,0 +1,26 @@
+name: zake_tracker
+description: "Apunta lo que coméis en el buffet libre de Zake y descubre si el restaurante sale perdiendo."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Gestión del estado (avisar a las pantallas cuando cambian los datos).
+  provider: ^6.1.2
+  # Guardar la comida en curso y el historial en el propio móvil.
+  shared_preferences: ^2.3.2
+  # Tipografías DM Sans y Bricolage Grotesque.
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
