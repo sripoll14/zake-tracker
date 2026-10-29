@@ -136,6 +136,23 @@ Debe salir ✓ en **Flutter**, **Android toolchain**, **Chrome** y **VS Code**. 
 > ⚠️ **Importante:** este código se escribió sin poder compilarlo (no había Flutter disponible donde se generó). Si `flutter analyze` muestra algún **error** (en rojo, "error •"), copia el mensaje completo y pásaselo a Claude para corregirlo. Suelen ser arreglos de una línea.
 
 ### 3.1. Retoques de una vez (recomendados)
+
+**Nombre visible de la app en Android.** En `android/app/src/main/AndroidManifest.xml`, cambia:
+```xml
+android:label="zake_tracker"
+```
+por:
+```xml
+android:label="Zake Tracker"
+```
+
+**Permiso de internet en Android** (para descargar las tipografías en la versión final). En el mismo archivo, justo encima de la línea `<application`, añade:
+```xml
+<uses-permission android:name="android.permission.INTERNET"/>
+```
+
+**Nombre en iPhone y web.** En `web/manifest.json` cambia `"name"` y `"short_name"` a `"Zake Tracker"`. En `web/index.html` cambia el `<title>`.
+
 ---
 
 ## 4. Probar la app
@@ -335,6 +352,9 @@ Si la marca sale roja ✗, entra en la ejecución y mira qué paso falló (por e
 | `cmdline-tools component is missing` | Android Studio → SDK Manager → SDK Tools → marca **Android SDK Command-line Tools**. |
 | El emulador va muy lento o no arranca | Activa la virtualización en la BIOS (VT-x / AMD-V) y, en Windows, la "Plataforma de máquina virtual". |
 | El móvil no aparece en `flutter devices` | Revisa que la depuración USB esté activa, acepta el aviso en el móvil y prueba otro cable (algunos solo cargan). |
+| `did not install NDK 28.2.13676358` (o otra versión) | Android Studio → SDK Manager → SDK Tools → marca **Show package details** → despliega **NDK (Side by side)** → marca esa versión exacta → Apply. |
+| Los avisos `WARNING: A restricted method in java.lang.System` o `sdkmanager is deprecated` | Son avisos internos de Gradle y Android, no errores. Se pueden ignorar. |
+| Probar en el iPhone sin subir nada | Con el PC y el iPhone en el mismo WiFi: `flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080 --release` y en Safari `http://IP_DEL_PC:8080`. Usa la IPv4 del adaptador **Wi-Fi** de `ipconfig` (no la de VirtualBox). Las redes de la universidad no lo permiten. |
 | Error de Gradle en la primera compilación | Ejecuta `flutter clean` y luego `flutter pub get` y `flutter run`. La primera vez Gradle descarga mucho; necesita buena conexión. |
 | Rutas con espacios o tildes dan errores raros | Mueve el SDK y el proyecto a rutas simples como `C:\dev\flutter` y `C:\proyectos\zake_tracker`. |
 | Las letras salen con otra fuente | Las tipografías se descargan de internet la primera vez. Comprueba la conexión y el permiso de internet (paso 3.1). |

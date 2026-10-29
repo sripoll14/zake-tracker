@@ -57,33 +57,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _rename(DinerType type, int index) async {
-    final controller = TextEditingController(text: _names[type]![index]);
     final result = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text('¿Cómo se llama?', style: AppText.display(22)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 16,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Nombre'),
-          onSubmitted: (v) => Navigator.of(context).pop(v),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text),
-            child: const Text('Guardar'),
-          ),
-        ],
-      ),
+      builder: (context) => _RenameDialog(initial: _names[type]![index]),
     );
-    controller.dispose();
     if (result != null && result.trim().isNotEmpty) {
       setState(() => _names[type]![index] = result.trim());
     }
@@ -464,6 +441,58 @@ class _CountRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Ventana para cambiar el nombre de una persona.
+///
+/// Es un StatefulWidget para que ella misma cree y libere su
+/// TextEditingController. Si se libera desde fuera justo al cerrar la
+/// ventana, la caja de texto aún se está viendo durante la animación de
+/// cierre y Flutter da el error "'_dependents.isEmpty': is not true".
+class _RenameDialog extends StatefulWidget {
+  const _RenameDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_RenameDialog> createState() => _RenameDialogState();
+}
+
+class _RenameDialogState extends State<_RenameDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose(); // se ejecuta cuando la ventana ya ha desaparecido
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.surface,
+      title: Text('¿Cómo se llama?', style: AppText.display(22)),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        maxLength: 16,
+        textCapitalization: TextCapitalization.words,
+        decoration: const InputDecoration(labelText: 'Nombre'),
+        onSubmitted: (v) => Navigator.of(context).pop(v),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: const Text('Guardar'),
+        ),
+      ],
     );
   }
 }

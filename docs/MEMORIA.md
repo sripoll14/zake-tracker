@@ -309,7 +309,7 @@ flowchart LR
 - **Rondas** en la parte de arriba, con el número de platos de cada una y el botón "+ Nueva ronda".
 - **"Para:"** la persona a la que se apuntan los platos (solo en grupo).
 - **Buscador y botón de filtros** (ver 6.3).
-- **Categorías** en fila deslizable (se sustituyen por el contador de resultados mientras se busca).
+- **Categorías** en fila deslizable (se sustituyen por el contador de resultados mientras se busca). El botón de cuadrícula a su izquierda abre un panel con todas las categorías a la vista; al elegir una, la fila se desplaza sola para mostrarla.
 - **Tarjetas de plato** con dibujo, número de la carta, coste para Zake, etiquetas de *muy pedido* 🔥, *limitado* y guindillas de picante, y botones − / +.
 - **Barra inferior** con el marcador resumido: coste vs. ingreso, barra de progreso y botón al marcador.
 
@@ -335,6 +335,16 @@ flowchart LR
 - Lista de comidas (se toca para ver el resumen; se desliza a la izquierda para borrar).
 
 ---
+
+### Filas deslizables (`HorizontalScroller`)
+
+Las filas horizontales (rondas, personas, filtros y categorías) usan un widget propio, `HorizontalScroller` en `common.dart`, que añade al `ListView` normal:
+
+- **Rueda del ratón y touchpad**: por defecto Flutter solo desplaza listas horizontales arrastrando con el dedo. Se traduce el giro de la rueda a desplazamiento horizontal.
+- **Degradado en los bordes** que aparece solo cuando hay más contenido a ese lado, para que se note que se puede deslizar.
+- Todos los elementos se construyen a la vez, así `Scrollable.ensureVisible` puede centrar uno aunque esté fuera de la pantalla.
+
+Además, en `main.dart` el `scrollBehavior` permite arrastrar cualquier lista con el ratón, algo necesario en la versión web.
 
 ## 8. Objetivos misteriosos y animaciones
 
@@ -403,6 +413,14 @@ La **guindilla** de los platos picantes (`chili_icon.dart`) también está dibuj
 - En el historial se guarda un **resumen** (`MealRecord`), no la comida entera: ocupa menos y no depende de que la carta cambie.
 
 ---
+
+## 9.1. Lecciones aprendidas (errores corregidos)
+
+| Error | Causa | Solución |
+|---|---|---|
+| Pantalla roja `'_dependents.isEmpty': is not true` al guardar un nombre | El `TextEditingController` se liberaba justo al cerrar la ventana, mientras su caja de texto seguía visible durante la animación de cierre. | La ventana es ahora un `StatefulWidget` (`_RenameDialog`) que crea y libera su propio controlador en `dispose()`, cuando ya ha desaparecido. **Regla:** quien crea un controlador lo libera en su propio `dispose()`. |
+| La fila de categorías no se movía con la rueda del ratón | Las listas horizontales de Flutter solo responden a arrastrar. | `HorizontalScroller` (ver sección 7). |
+| Al compilar para Android: `did not install NDK 28.2.13676358` | La descarga automática del NDK falló. | Instalarlo a mano en Android Studio → SDK Manager → SDK Tools → *Show package details* → NDK 28.2.13676358 (ver la guía). |
 
 ## 10. Diseño visual y accesibilidad
 

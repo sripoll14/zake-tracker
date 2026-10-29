@@ -43,6 +43,64 @@ class _MealScreenState extends State<MealScreen> {
   final Set<DishFilter> _filters = {};
   bool _showFilters = false;
 
+  /// Una clave por categoría para poder centrar su chip en la fila.
+  final Map<DishCategory, GlobalKey> _categoryKeys = {};
+
+  void _selectCategory(DishCategory cat) {
+    setState(() => _category = cat);
+    // Tras redibujar, desplaza la fila para que la categoría elegida se vea.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _categoryKeys[cat]?.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.5,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  /// Panel inferior con todas las categorías a la vista.
+  Future<void> _openCategorySheet(List<DishCategory> categories) async {
+    final picked = await showModalBottomSheet<DishCategory>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Categorías', style: AppText.display(22)),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final cat in categories)
+                    AppChip(
+                      label: cat.label,
+                      selected: cat == _category,
+                      filledWhenSelected: true,
+                      onTap: () => Navigator.of(context).pop(cat),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (picked != null && mounted) _selectCategory(picked);
+  }
+
   /// Hay búsqueda o filtros activos: se muestran resultados de toda la carta.
   bool get _searching => _query.trim().isNotEmpty || _filters.isNotEmpty;
 
@@ -244,22 +302,15 @@ class _MealScreenState extends State<MealScreen> {
               child: _showFilters
                   ? Padding(
                       padding: const EdgeInsets.only(top: 10),
-                      child: SizedBox(
-                        height: 44,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: DishFilter.values.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 8),
-                          itemBuilder: (context, i) {
-                            final f = DishFilter.values[i];
-                            return _FilterChip(
+                      child: HorizontalScroller(
+                        children: [
+                          for (final f in DishFilter.values)
+                            _FilterChip(
                               filter: f,
                               selected: _filters.contains(f),
                               onTap: () => _toggleFilter(f),
-                            );
-                          },
-                        ),
+                            ),
+                        ],
                       ),
                     )
                   : const SizedBox(width: double.infinity),
@@ -281,19 +332,31 @@ class _MealScreenState extends State<MealScreen> {
                 ),
               )
             else
-              SizedBox(
-                height: 44,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: categories.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, i) => AppChip(
-                    label: categories[i].label,
-                    selected: categories[i] == _category,
-                    filledWhenSelected: true,
-                    onTap: () => setState(() => _category = categories[i]),
-                  ),
+              Padding(
+                padding: const EdgeInsets.only(left: 20),
+                child: Row(
+                  children: [
+                    IconSquareButton(
+                      icon: Icons.grid_view_rounded,
+                      tooltip: 'Ver todas las categorías',
+                      onTap: () => _openCategorySheet(categories),
+                    ),
+                    Expanded(
+                      child: HorizontalScroller(
+                        padding: const EdgeInsets.fromLTRB(10, 0, 20, 0),
+                        children: [
+                          for (final cat in categories)
+                            AppChip(
+                              key: _categoryKeys.putIfAbsent(cat, GlobalKey.new),
+                              label: cat.label,
+                              selected: cat == _category,
+                              filledWhenSelected: true,
+                              onTap: () => _selectCategory(cat),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             const SizedBox(height: 8),
@@ -457,43 +520,37 @@ class _RoundsBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final meal = controller.meal!;
-    return SizedBox(
+    return HorizontalScroller(
       height: 56,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        children: [
-          for (var r = 0; r < meal.rounds; r++) ...[
-            AppChip(
-              label: 'Ronda ${r + 1}',
-              subtitle: r == meal.currentRound
-                  ? 'ahora · ${controller.platesInRound(r)} platos'
-                  : '${controller.platesInRound(r)} platos',
-              selected: r == meal.currentRound,
-              onTap: () => controller.selectRound(r),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Material(
-            color: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppColors.lineStrong, width: 2),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: controller.newRound,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Center(
-                  child: Text('+ Nueva ronda',
-                      style: AppText.body(14, weight: FontWeight.w700, color: AppColors.salmonLight)),
-                ),
+      children: [
+        for (var r = 0; r < meal.rounds; r++)
+          AppChip(
+            label: 'Ronda ${r + 1}',
+            subtitle: r == meal.currentRound
+                ? 'ahora · ${controller.platesInRound(r)} platos'
+                : '${controller.platesInRound(r)} platos',
+            selected: r == meal.currentRound,
+            onTap: () => controller.selectRound(r),
+          ),
+        Material(
+          color: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.lineStrong, width: 2),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: controller.newRound,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Center(
+                child: Text('+ Nueva ronda',
+                    style: AppText.body(14, weight: FontWeight.w700, color: AppColors.salmonLight)),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -506,24 +563,16 @@ class _DinerBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final meal = controller.meal!;
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        children: [
-          Center(child: Text('Para:', style: AppText.body(13, color: AppColors.muted))),
-          const SizedBox(width: 8),
-          for (var i = 0; i < meal.diners.length; i++) ...[
-            AppChip(
-              label: meal.diners[i].name,
-              selected: i == meal.currentDiner,
-              onTap: () => controller.selectDiner(i),
-            ),
-            const SizedBox(width: 8),
-          ],
-        ],
-      ),
+    return HorizontalScroller(
+      children: [
+        Center(child: Text('Para:', style: AppText.body(13, color: AppColors.muted))),
+        for (var i = 0; i < meal.diners.length; i++)
+          AppChip(
+            label: meal.diners[i].name,
+            selected: i == meal.currentDiner,
+            onTap: () => controller.selectDiner(i),
+          ),
+      ],
     );
   }
 }

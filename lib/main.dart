@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -34,6 +35,11 @@ class ZakeApp extends StatelessWidget {
       title: 'Zake Tracker',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
+      // Permite arrastrar las listas también con el ratón y el touchpad
+      // (por defecto solo con el dedo). Útil en la versión web y en el emulador.
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        dragDevices: PointerDeviceKind.values.toSet(),
+      ),
       home: const HomeScreen(),
     );
   }

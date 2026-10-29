@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
@@ -408,6 +409,112 @@ class WarningBox extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Fila que se desliza en horizontal (categorías, rondas, personas...).
+///
+/// Respecto a un ListView horizontal normal, añade:
+/// - que la rueda del ratón o el touchpad también la desplacen (por defecto
+///   Flutter solo lo hace al arrastrar con el dedo);
+/// - un degradado en los bordes que indica que hay más contenido;
+/// - `ensureVisible` para centrar un elemento concreto (con su GlobalKey).
+class HorizontalScroller extends StatefulWidget {
+  const HorizontalScroller({
+    super.key,
+    required this.children,
+    this.height = 44,
+    this.spacing = 8,
+    this.padding = const EdgeInsets.symmetric(horizontal: 20),
+  });
+
+  final List<Widget> children;
+  final double height;
+  final double spacing;
+  final EdgeInsets padding;
+
+  @override
+  State<HorizontalScroller> createState() => _HorizontalScrollerState();
+}
+
+class _HorizontalScrollerState extends State<HorizontalScroller> {
+  final ScrollController _controller = ScrollController();
+  bool _fadeStart = false;
+  bool _fadeEnd = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_updateFades);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateFades());
+  }
+
+  @override
+  void didUpdateWidget(covariant HorizontalScroller oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateFades());
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _updateFades() {
+    if (!mounted || !_controller.hasClients) return;
+    final p = _controller.position;
+    final start = p.pixels > 4;
+    final end = p.pixels < p.maxScrollExtent - 4;
+    if (start != _fadeStart || end != _fadeEnd) {
+      setState(() {
+        _fadeStart = start;
+        _fadeEnd = end;
+      });
+    }
+  }
+
+  /// Rueda del ratón (arriba/abajo) → desplazamiento horizontal.
+  void _onPointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || !_controller.hasClients) return;
+    final delta = event.scrollDelta.dy != 0 ? event.scrollDelta.dy : event.scrollDelta.dx;
+    final p = _controller.position;
+    _controller.jumpTo((p.pixels + delta).clamp(0.0, p.maxScrollExtent));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <Widget>[];
+    for (var i = 0; i < widget.children.length; i++) {
+      if (i > 0) items.add(SizedBox(width: widget.spacing));
+      items.add(widget.children[i]);
+    }
+    return SizedBox(
+      height: widget.height,
+      child: Listener(
+        onPointerSignal: _onPointerSignal,
+        child: ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (rect) => LinearGradient(
+            colors: [
+              _fadeStart ? Colors.transparent : Colors.black,
+              Colors.black,
+              Colors.black,
+              _fadeEnd ? Colors.transparent : Colors.black,
+            ],
+            stops: const [0, 0.08, 0.92, 1],
+          ).createShader(rect),
+          // ListView (no .builder): construye todos los elementos, así
+          // ensureVisible funciona aunque estén fuera de la pantalla.
+          child: ListView(
+            controller: _controller,
+            scrollDirection: Axis.horizontal,
+            padding: widget.padding,
+            children: items,
+          ),
+        ),
       ),
     );
   }
